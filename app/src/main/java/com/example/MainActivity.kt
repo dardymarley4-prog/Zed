@@ -73,8 +73,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MyApplicationTheme {
-                val systemMainViewModel: MainViewModel = viewModel()
+            val systemMainViewModel: MainViewModel = viewModel()
+            MyApplicationTheme(darkTheme = systemMainViewModel.isDarkMode) {
                 val context = LocalContext.current
 
                 // Launcher for runtime media permissions
@@ -123,17 +123,28 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun ZedAppContent(viewModel: MainViewModel) {
     val currentTab = viewModel.currentTab
+    val isDarkMode = viewModel.isDarkMode
+
+    val bgGradientColors = if (isDarkMode) {
+        listOf(
+            Color(0xFF0F1014),
+            Color(0xFF13141C),
+            Color(0xFF1E202B)
+        )
+    } else {
+        listOf(
+            Color(0xFFF1F5F9),
+            Color(0xFFE2E8F0),
+            Color(0xFFCBD5E1)
+        )
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF0F1014),
-                        Color(0xFF13141C),
-                        Color(0xFF1E202B)
-                    )
+                    colors = bgGradientColors
                 )
             )
     ) {
@@ -175,10 +186,10 @@ fun ZedAppContent(viewModel: MainViewModel) {
                 .fillMaxWidth()
                 .height(72.dp)
                 .clip(RoundedCornerShape(26.dp))
-                .background(Color.White.copy(alpha = 0.08f))
+                .background(if (isDarkMode) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.85f))
                 .border(
                     width = 1.dp,
-                    color = Color.White.copy(alpha = 0.15f),
+                    color = if (isDarkMode) Color.White.copy(alpha = 0.15f) else Color(0xFFCBD5E1),
                     shape = RoundedCornerShape(26.dp)
                 )
         ) {
@@ -247,7 +258,7 @@ fun GlassTabButton(
 ) {
     val scale by animateFloatAsState(if (isSelected) 1.15f else 1.0f, label = "iconScale")
     val alpha by animateFloatAsState(if (isSelected) 1f else 0.5f, label = "iconAlpha")
-    val tintColor = if (isSelected) ZedAccentPurple else Color.White
+    val tintColor = if (isSelected) ZedAccentPurple else MaterialTheme.colorScheme.onBackground
 
     Box(
         modifier = modifier
@@ -321,6 +332,8 @@ fun MusicTabScreen(viewModel: MainViewModel) {
             ) {
                 listOf("Music", "Playlist", "Dossiers").forEachIndexed { index, title ->
                     val isActive = index == activeUpperTab
+                    val textColorActive = if (viewModel.isDarkMode) Color.White else Color(0xFF0F172A)
+                    val textColorInactive = if (viewModel.isDarkMode) Color.White.copy(alpha = 0.5f) else Color(0xFF0F172A).copy(alpha = 0.5f)
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
@@ -331,7 +344,7 @@ fun MusicTabScreen(viewModel: MainViewModel) {
                             text = if (title == "Dossiers") "DOSSIERS" else title,
                             fontSize = if (isActive) 19.sp else 17.sp,
                             fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isActive) Color.White else Color.White.copy(alpha = 0.5f),
+                            color = if (isActive) textColorActive else textColorInactive,
                             letterSpacing = if (title == "Dossiers") 1.sp else 0.sp,
                         )
                         Spacer(modifier = Modifier.height(4.dp))
@@ -345,13 +358,13 @@ fun MusicTabScreen(viewModel: MainViewModel) {
                 }
             }
             IconButton(
-                onClick = { /* Action Menu Hamburger */ },
-                modifier = Modifier.size(40.dp)
+                onClick = { viewModel.toggleDarkMode() },
+                modifier = Modifier.size(40.dp).testTag("theme_toggle_button")
             ) {
                 Icon(
-                    imageVector = Icons.Default.Menu,
-                    contentDescription = "Menu options",
-                    tint = Color.White
+                    imageVector = if (viewModel.isDarkMode) Icons.Filled.LightMode else Icons.Filled.DarkMode,
+                    contentDescription = "Toggle color theme",
+                    tint = if (viewModel.isDarkMode) Color.White else Color(0xFF0F172A)
                 )
             }
         }
@@ -626,18 +639,36 @@ fun VideoTabScreen(viewModel: MainViewModel) {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text(
-            text = "Vos Dossiers Vidéos",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-        )
-        Text(
-            text = "${videos.size} dossiers vidéos identifiés",
-            fontSize = 13.sp,
-            color = ZedTextSecondary,
-            modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Vos Dossiers Vidéos",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (viewModel.isDarkMode) Color.White else Color(0xFF0F172A)
+                )
+                Text(
+                    text = "${videos.size} dossiers vidéos identifiés",
+                    fontSize = 13.sp,
+                    color = if (viewModel.isDarkMode) ZedTextSecondary else ZedLightTextSecondary,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
+                )
+            }
+            IconButton(
+                onClick = { viewModel.toggleDarkMode() },
+                modifier = Modifier.size(40.dp).testTag("theme_toggle_button")
+            ) {
+                Icon(
+                    imageVector = if (viewModel.isDarkMode) Icons.Filled.LightMode else Icons.Filled.DarkMode,
+                    contentDescription = "Toggle color theme",
+                    tint = if (viewModel.isDarkMode) Color.White else Color(0xFF0F172A)
+                )
+            }
+        }
 
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
@@ -813,27 +844,54 @@ fun NotesTabScreen(viewModel: MainViewModel) {
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        Text(
-            text = "Écrire un Texte / Paroles",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-        )
-        Text(
-            text = "Sauvegardez vos pensées, poèmes et paroles de musique localement",
-            fontSize = 13.sp,
-            color = ZedTextSecondary,
-            modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Écrire un Texte / Paroles",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (viewModel.isDarkMode) Color.White else Color(0xFF0F172A)
+                )
+                Text(
+                    text = "Sauvegardez vos pensées, poèmes et paroles de musique localement",
+                    fontSize = 13.sp,
+                    color = if (viewModel.isDarkMode) ZedTextSecondary else ZedLightTextSecondary,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
+                )
+            }
+            IconButton(
+                onClick = { viewModel.toggleDarkMode() },
+                modifier = Modifier.size(40.dp).testTag("theme_toggle_button")
+            ) {
+                Icon(
+                    imageVector = if (viewModel.isDarkMode) Icons.Filled.LightMode else Icons.Filled.DarkMode,
+                    contentDescription = "Toggle color theme",
+                    tint = if (viewModel.isDarkMode) Color.White else Color(0xFF0F172A)
+                )
+            }
+        }
 
         // Write Form Block
+        val isDark = viewModel.isDarkMode
+        val formBg = if (isDark) Color.White.copy(alpha = 0.05f) else Color.White
+        val formBorder = if (isDark) Color.White.copy(alpha = 0.1f) else Color(0xFFE2E8F0)
+        val textInputColor = if (isDark) Color.White else Color(0xFF0F172A)
+        val textPlaceholderColor = if (isDark) ZedTextSecondary else ZedLightTextSecondary
+        val textInputBorder = if (isDark) Color.White.copy(alpha = 0.15f) else Color(0xFFCBD5E1)
+        val textInputBgUnfocused = if (isDark) Color.White.copy(alpha = 0.03f) else Color(0xFFF8FAFC)
+        val textInputBgFocused = if (isDark) Color.White.copy(alpha = 0.05f) else Color(0xFFF1F5F9)
+
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
+            colors = CardDefaults.cardColors(containerColor = formBg),
             shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
+            border = BorderStroke(1.dp, formBorder)
         ) {
             Column(
                 modifier = Modifier.padding(14.dp),
@@ -849,14 +907,16 @@ fun NotesTabScreen(viewModel: MainViewModel) {
                 TextField(
                     value = titleInput,
                     onValueChange = { titleInput = it },
-                    placeholder = { Text("Titre de la chanson / Note...") },
+                    placeholder = { Text("Titre de la chanson / Note...", color = textPlaceholderColor) },
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
+                        focusedTextColor = textInputColor,
+                        unfocusedTextColor = textInputColor,
                         focusedBorderColor = ZedAccentPurple,
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.15f),
-                        unfocusedContainerColor = Color.White.copy(alpha = 0.03f),
-                        focusedContainerColor = Color.White.copy(alpha = 0.05f)
+                        unfocusedBorderColor = textInputBorder,
+                        unfocusedContainerColor = textInputBgUnfocused,
+                        focusedContainerColor = textInputBgFocused,
+                        focusedPlaceholderColor = textPlaceholderColor,
+                        unfocusedPlaceholderColor = textPlaceholderColor
                     ),
                     modifier = Modifier.fillMaxWidth().testTag("note_title_input"),
                     shape = RoundedCornerShape(10.dp)
@@ -865,16 +925,18 @@ fun NotesTabScreen(viewModel: MainViewModel) {
                 TextField(
                     value = contentInput,
                     onValueChange = { contentInput = it },
-                    placeholder = { Text("Tape ton texte ici...") },
+                    placeholder = { Text("Tape ton texte ici...", color = textPlaceholderColor) },
                     minLines = 3,
                     maxLines = 5,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
+                        focusedTextColor = textInputColor,
+                        unfocusedTextColor = textInputColor,
                         focusedBorderColor = ZedAccentPurple,
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.15f),
-                        unfocusedContainerColor = Color.White.copy(alpha = 0.03f),
-                        focusedContainerColor = Color.White.copy(alpha = 0.05f)
+                        unfocusedBorderColor = textInputBorder,
+                        unfocusedContainerColor = textInputBgUnfocused,
+                        focusedContainerColor = textInputBgFocused,
+                        focusedPlaceholderColor = textPlaceholderColor,
+                        unfocusedPlaceholderColor = textPlaceholderColor
                     ),
                     modifier = Modifier.fillMaxWidth().testTag("note_content_input"),
                     shape = RoundedCornerShape(10.dp)
@@ -948,21 +1010,29 @@ fun NotesTabScreen(viewModel: MainViewModel) {
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color.White.copy(alpha = 0.05f))
+                .background(if (isDark) Color.White.copy(alpha = 0.05f) else Color.White)
+                .then(
+                    if (!isDark) Modifier.border(1.dp, Color(0xFFCBD5E1), RoundedCornerShape(12.dp))
+                    else Modifier
+                )
                 .padding(horizontal = 12.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(imageVector = Icons.Default.Search, contentDescription = "Recherche", tint = ZedTextSecondary)
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = "Recherche",
+                tint = if (isDark) ZedTextSecondary else ZedLightTextSecondary
+            )
             Spacer(modifier = Modifier.width(8.dp))
             TextField(
                 value = searchInput,
                 onValueChange = { searchInput = it },
-                placeholder = { Text("Rechercher dans les enregistrements...", color = ZedTextMuted) },
+                placeholder = { Text("Rechercher dans les enregistrements...", color = if (isDark) ZedTextMuted else ZedLightTextMuted) },
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
+                    focusedTextColor = if (isDark) Color.White else Color(0xFF0F172A),
+                    unfocusedTextColor = if (isDark) Color.White else Color(0xFF0F172A),
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent
                 ),
@@ -976,7 +1046,7 @@ fun NotesTabScreen(viewModel: MainViewModel) {
 
         Text(
             text = "Textes enregistrés (${notes.size}) :",
-            color = Color.White,
+            color = if (isDark) Color.White else Color(0xFF0F172A),
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 8.dp)
         )
@@ -1028,11 +1098,17 @@ fun SavedNoteListItem(
         sdf.format(Date(note.timestamp))
     }
 
+    val isDark = MaterialTheme.colorScheme.background == ZedDarkBackGround
+    val cardColor = if (isDark) Color.White.copy(alpha = 0.03f) else Color.White
+    val borderColor = if (isDark) Color.White.copy(alpha = 0.05f) else Color(0xFFE2E8F0)
+    val textColor = if (isDark) Color.White else Color(0xFF0F172A)
+    val bodyColor = if (isDark) ZedTextSecondary else ZedLightTextSecondary
+
     Card(
         modifier = Modifier.fillMaxWidth().testTag("saved_note_card"),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.03f)),
+        colors = CardDefaults.cardColors(containerColor = cardColor),
         shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
+        border = BorderStroke(1.dp, borderColor)
     ) {
         Row(
             modifier = Modifier
@@ -1049,7 +1125,7 @@ fun SavedNoteListItem(
                     Text(
                         text = note.title,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
+                        color = textColor,
                         fontSize = 15.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -1065,7 +1141,7 @@ fun SavedNoteListItem(
                 Text(
                     text = note.content,
                     fontSize = 12.sp,
-                    color = ZedTextSecondary,
+                    color = bodyColor,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -1105,18 +1181,36 @@ fun PhotoTabScreen(viewModel: MainViewModel) {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text(
-            text = "Galerie Photos",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-        )
-        Text(
-            text = "${photos.size} images détectées sur l'appareil",
-            fontSize = 13.sp,
-            color = ZedTextSecondary,
-            modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Galerie Photos",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (viewModel.isDarkMode) Color.White else Color(0xFF0F172A)
+                )
+                Text(
+                    text = "${photos.size} images détectées sur l'appareil",
+                    fontSize = 13.sp,
+                    color = if (viewModel.isDarkMode) ZedTextSecondary else ZedLightTextSecondary,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
+                )
+            }
+            IconButton(
+                onClick = { viewModel.toggleDarkMode() },
+                modifier = Modifier.size(40.dp).testTag("theme_toggle_button")
+            ) {
+                Icon(
+                    imageVector = if (viewModel.isDarkMode) Icons.Filled.LightMode else Icons.Filled.DarkMode,
+                    contentDescription = "Toggle color theme",
+                    tint = if (viewModel.isDarkMode) Color.White else Color(0xFF0F172A)
+                )
+            }
+        }
 
         LazyVerticalGrid(
             columns = GridCells.Fixed(3),

@@ -63,6 +63,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         currentTab = tab
     }
 
+    // --- Dark Mode / Light Mode ---
+    var isDarkMode by mutableStateOf(true)
+        private set
+
+    fun toggleDarkMode() {
+        isDarkMode = !isDarkMode
+    }
+
     // --- Notes Integration (Room Database) ---
     val allNotes: StateFlow<List<Note>> = noteRepository.allNotes
         .stateIn(
