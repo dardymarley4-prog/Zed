@@ -1,0 +1,6 @@
+{
+  "name": "Zed",
+  "description": "A beautiful glassmorphic media player and text editor. Enjoy music, watch videos, view your photos, and write diary entries or lyrics in a single unified dark-themed dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
